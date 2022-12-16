@@ -11,10 +11,12 @@
 #include "UHH2/common/include/MCWeight.h"
 
 #include "boost/algorithm/string.hpp"
+#include <TLorentzVector.h>
 
 #include "Riostream.h"
 #include "TFile.h"
 #include "TH1F.h"
+
 
 using namespace std;
 using namespace uhh2;
@@ -86,6 +88,12 @@ ZprimeCandidateBuilder::ZprimeCandidateBuilder(uhh2::Context& ctx, TString mode,
   if(mode_ == "deepAK8"){
   h_AK8TopTags = ctx.get_handle<std::vector<TopJet>>("DeepAK8TopTags");
   h_AK8TopTagsPtr = ctx.get_handle<std::vector<const TopJet*>>("DeepAK8TopTagsPtr");
+  h_AK8WTags = ctx.get_handle<std::vector<TopJet>>("DeepAK8WTags");
+  h_AK8WTagsPtr = ctx.get_handle<std::vector<const TopJet*>>("DeepAK8WTagsPtr");
+  h_AK8GenTopTags = ctx.get_handle<std::vector<GenTopJet>>("DeepAK8GenTopTags");
+  h_AK8GenTopTagsPtr = ctx.get_handle<std::vector<const GenTopJet*>>("DeepAK8GenTopTagsPtr");
+  h_AK8GenWTags = ctx.get_handle<std::vector<GenTopJet>>("DeepAK8GenWTags");
+  h_AK8GenWTagsPtr = ctx.get_handle<std::vector<const GenTopJet*>>("DeepAK8GenWTagsPtr");
   }else if(mode_ == "hotvr"){
   h_AK8TopTags = ctx.get_handle<std::vector<TopJet>>("HOTVRTopTags");
   h_AK8TopTagsPtr = ctx.get_handle<std::vector<const TopJet*>>("HOTVRTopTagsPtr");
@@ -110,13 +118,28 @@ bool ZprimeCandidateBuilder::process(uhh2::Event& event){
   vector<LorentzVector> neutrinos = reconstruct_neutrino(lepton.v4(), event.met->v4());
   unsigned int neutrinoidx = 0;
 
+  cout << "aqui" << endl;
+
+
   // Build all necessary loops
   vector<TopJet> TopTags = event.get(h_AK8TopTags);
   vector<const TopJet*> TopTagsPtr = event.get(h_AK8TopTagsPtr);
 
+  vector<TopJet> WTags = event.get(h_AK8WTags);
+  vector<const TopJet*> WTagsPtr = event.get(h_AK8WTagsPtr);
+
+  vector<GenTopJet> GenTopTags = event.get(h_AK8GenTopTags);
+  vector<const GenTopJet*> GenTopTagsPtr = event.get(h_AK8GenTopTagsPtr);
+
+  vector<GenTopJet> GenWTags = event.get(h_AK8GenWTags);
+  vector<const GenTopJet*> GenWTagsPtr = event.get(h_AK8GenWTagsPtr);
+
+  cout << "aqui" << endl;
+
   if((event.muons->size() < 1 && event.electrons->size() < 1)) throw runtime_error("Event content did not allow reconstructing the Zprime: Leptons");
-  if((event.jets->size() < 2 && TopTags.size() == 0)) throw runtime_error("Event content did not allow reconstructing the Zprime: AK4");
-  if((event.jets->size() < 1 && TopTags.size() >= 1)) throw runtime_error("Event content did not allow reconstructing the Zprime: Top-tag");
+  if((event.jets->size() < 2 && TopTags.size() == 0 && WTags.size() == 0)) throw runtime_error("Event content did not allow reconstructing the Zprime: AK4");
+  if((event.jets->size() < 1 && TopTags.size() >= 1 && WTags.size() ==0)) throw runtime_error("Event content did not allow reconstructing the Zprime: Top-tag");
+  if((event.jets->size() < 2 && TopTags.size() == 0 && WTags.size() == 1)) throw runtime_error("Event content did not allow reconstructing the Zprime: W-tag");
 
   // Must have at least one AK4 jet with dR > 1.2
   vector<bool> has_separated_jet;
@@ -128,13 +151,30 @@ bool ZprimeCandidateBuilder::process(uhh2::Event& event){
     has_separated_jet.emplace_back(is_sep);
   }
 
+  vector<bool> has_separated_jet_from_W;
+  for(unsigned int i=0; i<WTags.size(); i++){
+    bool is_sep = false;
+    int w_sep = 0;
+    for(unsigned int k = 0; k < event.jets->size(); k++){
+      if(deltaR(event.jets->at(k), WTags[i]) > 1.2) w_sep = w_sep + 1;
+    }
+    if(w_sep > 1) is_sep = true;
+    has_separated_jet_from_W.emplace_back(is_sep);
+  }
+
   vector<bool> overlap_with_lepton;
+  vector<bool> W_overlap_with_lepton;
   double maxDeltaR = -1;
   if(mode_ == "deepAK8"){
     for(const TopJet & toptag : TopTags){
       bool overlap = true;
       if(deltaR(lepton, toptag) > 0.8) overlap = false;
       overlap_with_lepton.emplace_back(overlap);
+    }
+    for(const TopJet & wtag : WTags){
+      bool overlap = true;
+      if(deltaR(lepton, wtag) > 0.8) overlap = false;
+      W_overlap_with_lepton.emplace_back(overlap);
     }
   } else if(mode_ == "hotvr"){
     for(const TopJet & toptag : TopTags){
@@ -145,6 +185,7 @@ bool ZprimeCandidateBuilder::process(uhh2::Event& event){
     }
   }
 
+
   bool do_toptag_reco = false;
   if(TopTags.size() >= 1){
     for(unsigned int i=0; i<TopTags.size(); i++){
@@ -154,8 +195,24 @@ bool ZprimeCandidateBuilder::process(uhh2::Event& event){
     }
   }
 
-  if(!do_toptag_reco){ // AK4 reconstruction
+  bool do_wtag_reco = false;
+  if(WTags.size() >= 1){
+    for(unsigned int i=0; i<WTags.size(); i++){
+    if(has_separated_jet_from_W[i] &&  !W_overlap_with_lepton[i]) do_wtag_reco = true;
+    }
+  }
 
+
+
+  if(!do_toptag_reco){ // AK4 reconstruction
+  if(!do_wtag_reco){
+
+
+    cout << event.jets->size() << endl;
+    cout << event.genjets->size() << endl;
+
+
+    cout << "AK4 reconstruction" << endl;
     unsigned int njets = event.jets->size();
     if(njets > 10) njets = 10;
 
@@ -165,21 +222,28 @@ bool ZprimeCandidateBuilder::process(uhh2::Event& event){
 
         LorentzVector tophadv4;
         vector<Particle> tophadjets;
+        LorentzVector gentophadv4;
+        vector<Particle> gentophadjets;
         LorentzVector toplepv4 = lepton.v4() + neutrino_v4;
         vector<Particle> toplepjets;
+        vector<Particle> gentoplepjets;
         int num = j;
         ZprimeCandidate candidate;
         candidate.set_is_toptag_reconstruction(false);
         candidate.set_is_puppi_reconstruction(false);
+        candidate.set_is_wtag_reconstruction(false);
 
         for (unsigned int k=0; k<njets; k++) {
           if(num%3==0){
             tophadv4 = tophadv4 + event.jets->at(k).v4();
             tophadjets.emplace_back(event.jets->at(k));
+            gentophadv4 = gentophadv4 + event.genjets->at(k).v4();
+            gentophadjets.emplace_back(event.genjets->at(k));
           }
           if(num%3==1){
             toplepv4 = toplepv4 + event.jets->at(k).v4();
             toplepjets.emplace_back(event.jets->at(k));
+            gentoplepjets.emplace_back(event.genjets->at(k));
           }
           num /= 3;
         }
@@ -189,9 +253,12 @@ bool ZprimeCandidateBuilder::process(uhh2::Event& event){
         // Set all member variables of the candidate
         candidate.set_Zprime_v4(tophadv4 + toplepv4);
         candidate.set_top_hadronic_v4(tophadv4);
-        candidate.set_top_leptonic_v4(toplepv4);
+        candidate.set_gentop_hadronic_v4(gentophadv4);
+        candidate.set_top_leptonic_v4(toplepv4);        
         candidate.set_jets_hadronic(tophadjets);
         candidate.set_jets_leptonic(toplepjets);
+        candidate.set_genjets_hadronic(gentophadjets);
+        candidate.set_genjets_leptonic(gentoplepjets);
         candidate.set_lepton(lepton);
         candidate.set_neutrino_v4(neutrino_v4);
         candidate.set_neutrinoindex(neutrinoidx);
@@ -199,8 +266,93 @@ bool ZprimeCandidateBuilder::process(uhh2::Event& event){
       }
       neutrinoidx++;
     }
+  }else{
+  //Wtagreco
+      cout << "W reconstruction" << endl;
+      for(const auto & neutrino_v4 : neutrinos) {
+        for (unsigned int j=0; j < WTags.size(); j++) {
+          
+          if(!(has_separated_jet_from_W[j] &&  !W_overlap_with_lepton[j])) continue;
+          TopJet wtag = WTags.at(j);
+          const TopJet* wtag_ptr = WTagsPtr.at(j);
+           
+          GenTopJet genwtag = GenWTags.at(j);
+ 
+          vector<Jet> separated_jets;
+          for(unsigned int k = 0; k < event.jets->size(); k++){
+            if(deltaR(event.jets->at(k), wtag) > 1.2) separated_jets.emplace_back(event.jets->at(k));
+          }
+          unsigned int njets = separated_jets.size();
+          if(njets < 2) throw runtime_error("In WTagReco (PUPPI): This wtag does not have >= 2 well-separated AK4 jet. This should have been caught by earlier messages. There is a logic error.");
+          if(njets > 10) njets = 10;
+
+          unsigned int jetiters = pow(2, njets);
+          for (unsigned int k=0; k < jetiters; k++) {
+             LorentzVector SumSubjets_w(0.,0.,0.,0.);
+             LorentzVector GenSumSubjets_w(0.,0.,0.,0.);
+
+             for(unsigned int l=0; l<wtag.subjets().size(); l++) SumSubjets_w = SumSubjets_w + wtag.subjets().at(l).v4();
+             for(unsigned int l=0; l<genwtag.subjets().size(); l++) GenSumSubjets_w = GenSumSubjets_w + genwtag.subjets().at(l).v4();
+ 
+             LorentzVector tophadv4 = SumSubjets_w;
+             LorentzVector gentophadv4 = GenSumSubjets_w;
+
+             vector<Particle> tophadjets;
+             tophadjets.emplace_back(wtag);
+             vector<Particle> gentophadjets;
+             gentophadjets.emplace_back(genwtag);
+
+             LorentzVector toplepv4 = lepton.v4() + neutrino_v4;
+             vector<Particle> toplepjets;
+             vector<Particle> gentoplepjets;
+             int num = k;
+             ZprimeCandidate candidate;
+             candidate.set_is_toptag_reconstruction(false);
+             candidate.set_is_wtag_reconstruction(true);
+             candidate.set_is_puppi_reconstruction(false);
+
+             int n_candidate_had_top = 0;
+             for (unsigned int m=0; m<njets; m++) {
+              if(num%3==0){
+               tophadv4 = tophadv4 + separated_jets.at(m).v4();
+               tophadjets.emplace_back(separated_jets.at(m));
+               n_candidate_had_top = n_candidate_had_top + 1;
+               gentophadv4 = gentophadv4 + separated_jets.at(m).v4();
+               gentophadjets.emplace_back(separated_jets.at(m));
+
+              }
+              if(num%3==1){
+                toplepv4 = toplepv4 + separated_jets.at(m).v4();
+                toplepjets.emplace_back(separated_jets.at(m));
+                gentoplepjets.emplace_back(separated_jets.at(m));
+              } 
+              num /= 3;
+            }
+
+            if(n_candidate_had_top < 1) continue;
+            if(tophadjets.size() < 2 || toplepjets.size() < 1 || separated_jets.size() < 2) continue;
+            candidate.set_Zprime_v4(tophadv4 + toplepv4);
+            candidate.set_top_hadronic_v4(tophadv4);
+            candidate.set_top_leptonic_v4(toplepv4);
+            candidate.set_gentop_hadronic_v4(gentophadv4);
+            candidate.set_jets_hadronic(tophadjets);
+            candidate.set_jets_leptonic(toplepjets);
+            candidate.set_genjets_hadronic(gentophadjets);
+            candidate.set_genjets_leptonic(gentoplepjets);
+            candidate.set_lepton(lepton);
+            candidate.set_tophad_topjet_ptr(wtag_ptr);
+            candidate.set_neutrinoindex(neutrinoidx);
+            candidate.set_neutrino_v4(neutrino_v4);
+            candidates.emplace_back(candidate);
+          }
+        }
+      }
+      neutrinoidx++;
+
+  }
   }
   else{ // TopTag reconstruction
+    cout << "TopTag reconstruction" << endl;
     for(const auto & neutrino_v4 : neutrinos) {
       for (unsigned int j=0; j < TopTags.size(); j++) {
         if(!(has_separated_jet[j] &&  !overlap_with_lepton[j])) continue;
@@ -208,6 +360,8 @@ bool ZprimeCandidateBuilder::process(uhh2::Event& event){
         TopJet toptag = TopTags.at(j);
         const TopJet* toptag_ptr = TopTagsPtr.at(j);
 
+        GenTopJet gentoptag = GenTopTags.at(j);
+ 
         if(mode_ == "hotvr"){
           // Only HOTVR jet farest from lepton
           if(deltaR(lepton,toptag)<maxDeltaR) continue;
@@ -224,21 +378,29 @@ bool ZprimeCandidateBuilder::process(uhh2::Event& event){
 
         unsigned int jetiters = pow(2, njets);
         for (unsigned int k=0; k < jetiters; k++) {
-
+          LorentzVector GenSumSubjets_w(0.,0.,0.,0.);
+          for(unsigned int l=0; l<gentoptag.subjets().size(); l++) GenSumSubjets_w = GenSumSubjets_w + gentoptag.subjets().at(l).v4();
+ 
+          LorentzVector gentophadv4 = GenSumSubjets_w;
           LorentzVector tophadv4 = toptag.v4();
           vector<Particle> tophadjets;
           tophadjets.emplace_back(toptag);
+          vector<Particle> gentophadjets;
+          gentophadjets.emplace_back(gentoptag);
           LorentzVector toplepv4 = lepton.v4() + neutrino_v4;
           vector<Particle> toplepjets;
+          vector<Particle> gentoplepjets;
           int num = k;
           ZprimeCandidate candidate;
           candidate.set_is_toptag_reconstruction(true);
           candidate.set_is_puppi_reconstruction(true);
+          candidate.set_is_wtag_reconstruction(false);
 
           for (unsigned int l=0; l<njets; l++) {
             if(num%2==0){
               toplepv4 = toplepv4 + separated_jets.at(l).v4();
               toplepjets.emplace_back(separated_jets.at(l));
+              gentoplepjets.emplace_back(separated_jets.at(l));
             }
             num /= 2;
           }
@@ -248,9 +410,12 @@ bool ZprimeCandidateBuilder::process(uhh2::Event& event){
           // Set all member variables of the candidate
           candidate.set_Zprime_v4(tophadv4 + toplepv4);
           candidate.set_top_hadronic_v4(tophadv4);
+          candidate.set_gentop_hadronic_v4(gentophadv4);
           candidate.set_top_leptonic_v4(toplepv4);
           candidate.set_jets_hadronic(tophadjets);
           candidate.set_jets_leptonic(toplepjets);
+          candidate.set_genjets_hadronic(tophadjets);
+          candidate.set_genjets_leptonic(toplepjets);
           candidate.set_tophad_topjet_ptr(toptag_ptr);
           candidate.set_lepton(lepton);
           candidate.set_neutrinoindex(neutrinoidx);
@@ -274,7 +439,6 @@ ZprimeChi2Discriminator::ZprimeChi2Discriminator(uhh2::Context& ctx){
   h_ZprimeCandidates_ = ctx.get_handle< std::vector<ZprimeCandidate> >("ZprimeCandidates");
   h_is_zprime_reconstructed_ = ctx.get_handle< bool >("is_zprime_reconstructed_chi2");
   h_BestCandidate_ = ctx.get_handle<ZprimeCandidate*>("ZprimeCandidateBestChi2");
-
   // mtophad_ = 175.;
   // mtophad_ttag_ = 177.;
   // sigmatophad_ = 20.;
@@ -586,6 +750,46 @@ bool AK8PuppiTopTagger::process(uhh2::Event& event){
   return (toptags.size() >= 1);
 }
 
+AK8PuppiWTagger::AK8PuppiWTagger(uhh2::Context& ctx, int min_num_daughters, float max_dR, float min_mass, float max_mass, float max_tau21) : min_num_daughters_(min_num_daughters), max_dR_(max_dR), min_mass_(min_mass), max_mass_(max_mass), max_tau21_(max_tau21) {
+
+  h_AK8PuppiWTags_ = ctx.get_handle< std::vector<TopJet> >("AK8PuppiWTags");
+  h_AK8PuppiWTagsPtr_ = ctx.get_handle< std::vector<const TopJet*> >("AK8PuppiWTagsPtr");
+
+}
+
+bool AK8PuppiWTagger::process(uhh2::Event& event){
+
+  std::vector<TopJet> wtags;
+  vector<const TopJet*> wtags_ptr;
+  for(const TopJet & puppijet : *event.toppuppijets){
+    // 1) Jet should have at least two daughters
+    int n_constit = 0;
+    // Loop over subjets' constituents
+    for(unsigned int i=0; i<puppijet.subjets().size(); i++){
+       n_constit += puppijet.subjets().at(i).numberOfDaughters();
+    }
+    if(puppijet.numberOfDaughters() > (int)puppijet.subjets().size()){
+      n_constit += (puppijet.numberOfDaughters() - puppijet.subjets().size());
+    }
+    if(n_constit<min_num_daughters_){
+      continue;
+    }
+    // 3) Cut on SD mass
+    LorentzVector SumSubjets(0.,0.,0.,0.);
+    for(unsigned int k=0; k<puppijet.subjets().size(); k++) SumSubjets = SumSubjets + puppijet.subjets().at(k).v4();
+    float mSD = SumSubjets.M();
+    if(!(min_mass_ < mSD && mSD < max_mass_)) continue; 
+     // 4) Cut on tau 2/1
+    if(!((puppijet.tau2() / puppijet.tau1()) < max_tau21_)) continue;
+    // All jets at this point are w-tagged
+    wtags.emplace_back(puppijet);
+    wtags_ptr.emplace_back(&puppijet);
+  }
+  event.set(h_AK8PuppiWTags_, wtags);
+  event.set(h_AK8PuppiWTagsPtr_, wtags_ptr);
+  return (wtags.size() >= 1);
+}
+
 
 
 HOTVRTopTagger::HOTVRTopTagger(uhh2::Context& ctx) {
@@ -616,15 +820,20 @@ DeepAK8TopTagger::DeepAK8TopTagger(uhh2::Context& ctx, float min_mSD, float max_
 
   h_DeepAK8TopTags_ = ctx.get_handle< std::vector<TopJet> >("DeepAK8TopTags");
   h_DeepAK8TopTagsPtr_ = ctx.get_handle< std::vector<const TopJet*> >("DeepAK8TopTagsPtr");
-
+  h_DeepAK8GenTopTags_ = ctx.get_handle< std::vector<GenTopJet> >("DeepAK8GenTopTags");
+  h_DeepAK8GenTopTagsPtr_ = ctx.get_handle< std::vector<const GenTopJet*> >("DeepAK8GenTopTagsPtr");
 }
 
 bool DeepAK8TopTagger::process(uhh2::Event& event){
 
+  int kk=-1;
   std::vector<TopJet> toptags;
   vector<const TopJet*> toptags_ptr;
+  std::vector<GenTopJet> gentoptags;
+  vector<const GenTopJet*> gentoptags_ptr;
   for(const TopJet & puppijet : *event.toppuppijets){
 
+     kk=kk+1;
      // pT threshold
      if(!( puppijet.pt() > pt_min_ )) continue;
 
@@ -639,14 +848,84 @@ bool DeepAK8TopTagger::process(uhh2::Event& event){
 
      toptags.emplace_back(puppijet);
      toptags_ptr.emplace_back(&puppijet);
+     int index=-1;
+     assert(event.gentopjets);
+     
 
+     for(const GenTopJet & genpuppijet : *event.gentopjets){
+         index=index+1;
+         if(index == kk){
+             gentoptags.emplace_back(genpuppijet);
+             gentoptags_ptr.emplace_back(&genpuppijet);
+         }
+     }
   }
 
   event.set(h_DeepAK8TopTags_, toptags);
   event.set(h_DeepAK8TopTagsPtr_, toptags_ptr);
+  event.set(h_DeepAK8GenTopTags_, gentoptags);
+  event.set(h_DeepAK8GenTopTagsPtr_, gentoptags_ptr);
+
   return (toptags.size() >= 1);
 
 }
+
+
+DeepAK8WTagger::DeepAK8WTagger(uhh2::Context& ctx, float min_mSD, float max_mSD, float max_score, float pt_min) : min_mSD_(min_mSD), max_mSD_(max_mSD), max_score_(max_score), pt_min_(pt_min) {
+
+  h_DeepAK8WTags_ = ctx.get_handle< std::vector<TopJet> >("DeepAK8WTags");
+  h_DeepAK8WTagsPtr_ = ctx.get_handle< std::vector<const TopJet*> >("DeepAK8WTagsPtr");
+  h_DeepAK8GenWTags_ = ctx.get_handle< std::vector<GenTopJet> >("DeepAK8GenWTags");
+  h_DeepAK8GenWTagsPtr_ = ctx.get_handle< std::vector<const GenTopJet*> >("DeepAK8GenWTagsPtr");
+}
+
+bool DeepAK8WTagger::process(uhh2::Event& event){
+
+
+  int kk=-1;
+  std::vector<TopJet> wtags;
+  vector<const TopJet*> wtags_ptr;
+  std::vector<GenTopJet> genwtags;
+  vector<const GenTopJet*> genwtags_ptr;
+  for(const TopJet & puppijet : *event.toppuppijets){
+
+     kk=kk+1;
+     // pT threshold
+     if(!( puppijet.pt() > pt_min_ )) continue;
+
+     // cut on SD mass
+     LorentzVector SumSubjets(0.,0.,0.,0.);
+     for(unsigned int k=0; k<puppijet.subjets().size(); k++) SumSubjets = SumSubjets + puppijet.subjets().at(k).v4();
+     float mSD = SumSubjets.M();
+     if(!(min_mSD_ < mSD && mSD < max_mSD_)) continue;
+
+     // cut on score
+     if( !(puppijet.btag_MassDecorrelatedDeepBoosted_TvsQCD() >= max_score_ ) ) continue;
+
+     wtags.emplace_back(puppijet);
+     wtags_ptr.emplace_back(&puppijet);
+     int index=-1;
+     assert(event.gentopjets);
+
+     for(const GenTopJet & genpuppijet : *event.gentopjets){
+         index=index+1;
+         if(index == kk){
+             genwtags.emplace_back(genpuppijet);
+             genwtags_ptr.emplace_back(&genpuppijet);
+         }
+     }
+
+
+  }
+
+  event.set(h_DeepAK8WTags_, wtags);
+  event.set(h_DeepAK8WTagsPtr_, wtags_ptr);
+  event.set(h_DeepAK8GenWTags_, genwtags);
+  event.set(h_DeepAK8GenWTagsPtr_, genwtags_ptr);
+  return (wtags.size() >= 1);
+
+}
+
 
 bool JetLeptonDeltaRCleaner::process(uhh2::Event& event){
 
@@ -904,6 +1183,40 @@ Variables_NN::Variables_NN(uhh2::Context& ctx, TString mode): mode_(mode){
 ///  AK4 JETS
   h_N_Ak4 = ctx.declare_event_output<float> ("N_Ak4");
 
+  h_Ak4_add_pt = ctx.declare_event_output<float> ("Ak4_add_pt");
+  h_Ak4_add_eta = ctx.declare_event_output<float>("Ak4_add_eta");
+  h_Ak4_add_phi = ctx.declare_event_output<float>("Ak4_add_phi");
+  h_Ak4_add_E = ctx.declare_event_output<float>  ("Ak4_add_E");
+  h_Ak4_add_m = ctx.declare_event_output<float>  ("Ak4_add_m");
+ 
+  h_top_pt = ctx.declare_event_output<float> ("top_pt");
+  h_top_eta = ctx.declare_event_output<float>("top_eta");
+  h_top_phi = ctx.declare_event_output<float>("top_phi");
+  h_top_E = ctx.declare_event_output<float>  ("top_E");
+  h_top_m = ctx.declare_event_output<float>  ("top_m");
+ 
+  h_antitop_pt = ctx.declare_event_output<float> ("antitop_pt");
+  h_antitop_eta = ctx.declare_event_output<float>("antitop_eta");
+  h_antitop_phi = ctx.declare_event_output<float>("antitop_phi");
+  h_antitop_E = ctx.declare_event_output<float>  ("antitop_E");
+  h_antitop_m = ctx.declare_event_output<float>  ("antitop_m");
+
+//boosted variables
+  h_Boost_Ak4_add_pt = ctx.declare_event_output<float> ("Boost_Ak4_add_pt");
+  h_Boost_Ak4_add_eta = ctx.declare_event_output<float>("Boost_Ak4_add_eta");
+  h_Boost_Ak4_add_phi = ctx.declare_event_output<float>("Boost_Ak4_add_phi");
+  h_Boost_Ak4_add_E = ctx.declare_event_output<float>  ("Boost_Ak4_add_E");
+
+  h_Boost_top_pt = ctx.declare_event_output<float> ("Boost_top_pt");
+  h_Boost_top_eta = ctx.declare_event_output<float>("Boost_top_eta");
+  h_Boost_top_phi = ctx.declare_event_output<float>("Boost_top_phi");
+  h_Boost_top_E = ctx.declare_event_output<float>  ("Boost_top_E");
+
+  h_Boost_antitop_pt = ctx.declare_event_output<float> ("Boost_antitop_pt");
+  h_Boost_antitop_eta = ctx.declare_event_output<float>("Boost_antitop_eta");
+  h_Boost_antitop_phi = ctx.declare_event_output<float>("Boost_antitop_phi");
+  h_Boost_antitop_E = ctx.declare_event_output<float>  ("Boost_antitop_E");
+ 
   h_Ak4_j1_pt = ctx.declare_event_output<float> ("Ak4_j1_pt");
   h_Ak4_j1_eta = ctx.declare_event_output<float>("Ak4_j1_eta");
   h_Ak4_j1_phi = ctx.declare_event_output<float>("Ak4_j1_phi");
@@ -1004,6 +1317,10 @@ Variables_NN::Variables_NN(uhh2::Context& ctx, TString mode): mode_(mode){
 
 ///  M ttbar
   h_M_tt = ctx.declare_event_output<float> ("M_tt");
+  h_M_tl = ctx.declare_event_output<float> ("M_tl");
+  h_M_th = ctx.declare_event_output<float> ("M_th");
+  h_chi2 = ctx.declare_event_output<float> ("chi2");  
+
 
 }
 
@@ -1056,6 +1373,41 @@ bool Variables_NN::process(uhh2::Event& evt){
 
 ///////// AK4 JETS
   evt.set(h_N_Ak4, -10);
+
+  evt.set(h_top_pt, -100);
+  evt.set(h_top_eta, -100);
+  evt.set(h_top_phi, -100);
+  evt.set(h_top_E, -100);
+  evt.set(h_top_m, -100);
+
+  evt.set(h_antitop_pt, -100);
+  evt.set(h_antitop_eta, -100);
+  evt.set(h_antitop_phi, -100);
+  evt.set(h_antitop_E, -100);
+  evt.set(h_antitop_m, -100);
+
+  evt.set(h_Ak4_add_pt, -100);
+  evt.set(h_Ak4_add_eta, -100);
+  evt.set(h_Ak4_add_phi, -100);
+  evt.set(h_Ak4_add_E, -100);
+  evt.set(h_Ak4_add_m, -100);
+
+
+  evt.set(h_Boost_top_pt, -100);
+  evt.set(h_Boost_top_eta, -100);
+  evt.set(h_Boost_top_phi, -100);
+  evt.set(h_Boost_top_E, -100);
+
+  evt.set(h_Boost_antitop_pt, -100);
+  evt.set(h_Boost_antitop_eta, -100);
+  evt.set(h_Boost_antitop_phi, -100);
+  evt.set(h_Boost_antitop_E, -100);
+
+  evt.set(h_Boost_Ak4_add_pt, -100);
+  evt.set(h_Boost_Ak4_add_eta, -100);
+  evt.set(h_Boost_Ak4_add_phi, -100);
+  evt.set(h_Boost_Ak4_add_E, -100);
+
 
   evt.set(h_Ak4_j1_pt, -10);
   evt.set(h_Ak4_j1_eta, -10);
@@ -1307,14 +1659,234 @@ bool Variables_NN::process(uhh2::Event& evt){
 
   // ttbar mass
   evt.set(h_M_tt, -10);
+  evt.set(h_M_tl, -10);
+  evt.set(h_M_th, -10);
+  evt.set(h_chi2, -10);
+
   bool is_zprime_reconstructed_chi2 = evt.get(h_is_zprime_reconstructed_chi2);
   if(is_zprime_reconstructed_chi2){
     ZprimeCandidate* BestZprimeCandidate = evt.get(h_BestZprimeCandidateChi2);
+
+    vector<Particle> jets_had = BestZprimeCandidate->jets_hadronic();
+    vector<Particle> jets_lep = BestZprimeCandidate->jets_leptonic();
+
+    float chi2 = BestZprimeCandidate->discriminator("chi2_total");
     float Mass_tt = BestZprimeCandidate->Zprime_v4().M();
-  evt.set(h_M_tt, Mass_tt);
+
+    float Mass_th    = BestZprimeCandidate->top_hadronic_v4().M();
+    float Pt_th      = BestZprimeCandidate->top_hadronic_v4().pt();
+    float Eta_th     = BestZprimeCandidate->top_hadronic_v4().eta();
+    float Phi_th     = BestZprimeCandidate->top_hadronic_v4().phi();
+    float Energy_th  = BestZprimeCandidate->top_hadronic_v4().energy();
+ 
+    float Mass_tl    = BestZprimeCandidate->top_leptonic_v4().M();
+    float Pt_tl      = BestZprimeCandidate->top_leptonic_v4().pt();
+    float Eta_tl     = BestZprimeCandidate->top_leptonic_v4().eta();
+    float Phi_tl     = BestZprimeCandidate->top_leptonic_v4().phi();
+    float Energy_tl  = BestZprimeCandidate->top_leptonic_v4().energy();
+
+    if (Nmuons >=1){
+        if(evt.muons->at(0).charge() == 1){
+
+           evt.set(h_top_pt, Pt_tl);
+           evt.set(h_top_eta, Eta_tl);
+           evt.set(h_top_phi, Phi_tl);
+           evt.set(h_top_E, Energy_tl);
+           evt.set(h_top_m, Mass_tl);         
+
+           evt.set(h_antitop_pt, Pt_th);
+           evt.set(h_antitop_eta, Eta_th);
+           evt.set(h_antitop_phi, Phi_th);
+           evt.set(h_antitop_E, Energy_th);
+           evt.set(h_antitop_m, Mass_th); 
+
+        }
+        if(evt.muons->at(0).charge() == -1){
+
+           evt.set(h_top_pt, Pt_th);
+           evt.set(h_top_eta, Eta_th);
+           evt.set(h_top_phi, Phi_th);
+           evt.set(h_top_E, Energy_th);
+           evt.set(h_top_m, Mass_th);                    
+        
+           evt.set(h_antitop_pt, Pt_tl);
+           evt.set(h_antitop_eta, Eta_tl);
+           evt.set(h_antitop_phi, Phi_tl);
+           evt.set(h_antitop_E, Energy_tl);
+           evt.set(h_antitop_m, Mass_tl);
+
+        }
+    }
+    if (Nelectrons >= 1){
+        if(evt.electrons->at(0).charge() == 1){
+           evt.set(h_top_pt, Pt_tl);
+           evt.set(h_top_eta, Eta_tl);
+           evt.set(h_top_phi, Phi_tl);
+           evt.set(h_top_E, Energy_tl);
+           evt.set(h_top_m, Mass_tl);                    
+        
+           evt.set(h_antitop_pt, Pt_th);
+           evt.set(h_antitop_eta, Eta_th);
+           evt.set(h_antitop_phi, Phi_th);
+           evt.set(h_antitop_E, Energy_th);
+           evt.set(h_antitop_m, Mass_th);
+        }
+        if(evt.electrons->at(0).charge() == -1){
+
+           evt.set(h_top_pt, Pt_th);
+           evt.set(h_top_eta, Eta_th);
+           evt.set(h_top_phi, Phi_th);
+           evt.set(h_top_E, Energy_th);
+           evt.set(h_top_m, Mass_th); 
+
+           evt.set(h_antitop_pt, Pt_tl);
+           evt.set(h_antitop_eta, Eta_tl);
+           evt.set(h_antitop_phi, Phi_tl);
+           evt.set(h_antitop_E, Energy_tl);
+           evt.set(h_antitop_m, Mass_tl);
+
+        }
+    }
+
+
+
+    int idx;
+    float dr_add =  -99;
+    float dr_add2 = -99;
+    float dr_add3 = -99;
+    float dr_add4 = -99;
+    float dr_add5 = -99;
+    float dr_add_6 = -99;  
+    float dr_add6 = -99;
+    float dr_add7 = -99;
+    float dr_add8 = -99;
+    float dr_add9 = -99;
+    float dr_add10 = -99;
+    float dr_add11 = -99;
+
+    if(NAk4jets >=1) dr_add = match_dr(Ak4jets->at(0), jets_lep, idx);
+    if(NAk4jets >=2) dr_add2 = match_dr(Ak4jets->at(1), jets_lep, idx);
+    if(NAk4jets >=3) dr_add3 = match_dr(Ak4jets->at(2), jets_lep, idx);
+    if(NAk4jets >=4) dr_add4 = match_dr(Ak4jets->at(3), jets_lep, idx);
+    if(NAk4jets >=5) dr_add5 = match_dr(Ak4jets->at(4), jets_lep, idx);   
+    if(NAk4jets >=6) dr_add_6 = match_dr(Ak4jets->at(5), jets_lep, idx);
+ 
+    if(NAk4jets >=1) dr_add6 = match_dr(Ak4jets->at(0), jets_had, idx);
+    if(NAk4jets >=2) dr_add7 = match_dr(Ak4jets->at(1), jets_had, idx);
+    if(NAk4jets >=3) dr_add8 = match_dr(Ak4jets->at(2), jets_had, idx);
+    if(NAk4jets >=4) dr_add9 = match_dr(Ak4jets->at(3), jets_had, idx);
+    if(NAk4jets >=5) dr_add10 = match_dr(Ak4jets->at(4), jets_had, idx);
+    if(NAk4jets >=6) dr_add11 = match_dr(Ak4jets->at(5), jets_had, idx);  
+ 
+    TLorentzVector Boost_Ak4_add(0,0,0,0);
+ 
+    if(dr_add > 999 && dr_add6 > 999 && Ak4jets->at(0).pt() > 100 && deltaR(BestZprimeCandidate->top_hadronic_v4(),Ak4jets->at(0)) > 1.5 && deltaR(BestZprimeCandidate->top_leptonic_v4(),Ak4jets->at(0)) > 1.5){
+      evt.set(h_Ak4_add_pt, Ak4jets->at(0).pt());
+      evt.set(h_Ak4_add_eta, Ak4jets->at(0).eta());
+      evt.set(h_Ak4_add_phi, Ak4jets->at(0).phi());
+      evt.set(h_Ak4_add_E, Ak4jets->at(0).energy());
+      evt.set(h_Ak4_add_m, Ak4jets->at(0).v4().M());
+      Boost_Ak4_add.SetPtEtaPhiE(Ak4jets->at(0).pt(),Ak4jets->at(0).eta(),Ak4jets->at(0).phi(),Ak4jets->at(0).energy());
+    } 
+    else if(dr_add2 > 999 && dr_add7 > 999 && Ak4jets->at(1).pt() > 100 && deltaR(BestZprimeCandidate->top_hadronic_v4(),Ak4jets->at(1)) > 1.5 && deltaR(BestZprimeCandidate->top_leptonic_v4(),Ak4jets->at(1)) > 1.5){
+      evt.set(h_Ak4_add_pt, Ak4jets->at(1).pt());
+      evt.set(h_Ak4_add_eta, Ak4jets->at(1).eta());
+      evt.set(h_Ak4_add_phi, Ak4jets->at(1).phi());
+      evt.set(h_Ak4_add_E, Ak4jets->at(1).energy());
+      evt.set(h_Ak4_add_m, Ak4jets->at(1).v4().M());
+      Boost_Ak4_add.SetPtEtaPhiE(Ak4jets->at(1).pt(),Ak4jets->at(1).eta(),Ak4jets->at(1).phi(),Ak4jets->at(1).energy());
+    }
+    else if(dr_add3 > 999 && dr_add8 > 999 && Ak4jets->at(2).pt() > 100 && deltaR(BestZprimeCandidate->top_hadronic_v4(),Ak4jets->at(2)) > 1.5 && deltaR(BestZprimeCandidate->top_leptonic_v4(),Ak4jets->at(2)) > 1.5){
+      evt.set(h_Ak4_add_pt, Ak4jets->at(2).pt());
+      evt.set(h_Ak4_add_eta, Ak4jets->at(2).eta());
+      evt.set(h_Ak4_add_phi, Ak4jets->at(2).phi());
+      evt.set(h_Ak4_add_E, Ak4jets->at(2).energy());
+      evt.set(h_Ak4_add_m, Ak4jets->at(2).v4().M());
+      Boost_Ak4_add.SetPtEtaPhiE(Ak4jets->at(2).pt(),Ak4jets->at(2).eta(),Ak4jets->at(2).phi(),Ak4jets->at(2).energy());
+    }
+    else if(dr_add4 > 999 && dr_add9 > 999 && Ak4jets->at(3).pt() > 100 && deltaR(BestZprimeCandidate->top_hadronic_v4(),Ak4jets->at(3)) > 1.5 && deltaR(BestZprimeCandidate->top_leptonic_v4(),Ak4jets->at(3)) > 1.5){
+      evt.set(h_Ak4_add_pt, Ak4jets->at(3).pt());
+      evt.set(h_Ak4_add_eta, Ak4jets->at(3).eta());
+      evt.set(h_Ak4_add_phi, Ak4jets->at(3).phi());
+      evt.set(h_Ak4_add_E, Ak4jets->at(3).energy());
+      evt.set(h_Ak4_add_m, Ak4jets->at(3).v4().M());
+      Boost_Ak4_add.SetPtEtaPhiE(Ak4jets->at(3).pt(),Ak4jets->at(3).eta(),Ak4jets->at(3).phi(),Ak4jets->at(3).energy());
+    }
+    else if(dr_add5 > 999 && dr_add10 > 999 && Ak4jets->at(4).pt() > 100 && deltaR(BestZprimeCandidate->top_hadronic_v4(),Ak4jets->at(4)) > 1.5 && deltaR(BestZprimeCandidate->top_leptonic_v4(),Ak4jets->at(4)) > 1.5){
+      evt.set(h_Ak4_add_pt, Ak4jets->at(4).pt());
+      evt.set(h_Ak4_add_eta, Ak4jets->at(4).eta());
+      evt.set(h_Ak4_add_phi, Ak4jets->at(4).phi());
+      evt.set(h_Ak4_add_E, Ak4jets->at(4).energy());
+      evt.set(h_Ak4_add_m, Ak4jets->at(4).v4().M());
+      Boost_Ak4_add.SetPtEtaPhiE(Ak4jets->at(4).pt(),Ak4jets->at(4).eta(),Ak4jets->at(4).phi(),Ak4jets->at(4).energy());
+    }
+    else if(dr_add_6 > 999 && dr_add11 > 999 && Ak4jets->at(5).pt() > 100 && deltaR(BestZprimeCandidate->top_hadronic_v4(),Ak4jets->at(5)) > 1.5 && deltaR(BestZprimeCandidate->top_leptonic_v4(),Ak4jets->at(5)) > 1.5){
+      evt.set(h_Ak4_add_pt, Ak4jets->at(5).pt());
+      evt.set(h_Ak4_add_eta, Ak4jets->at(5).eta());
+      evt.set(h_Ak4_add_phi, Ak4jets->at(5).phi());
+      evt.set(h_Ak4_add_E, Ak4jets->at(5).energy());
+      evt.set(h_Ak4_add_m, Ak4jets->at(5).v4().M());
+      Boost_Ak4_add.SetPtEtaPhiE(Ak4jets->at(5).pt(),Ak4jets->at(5).eta(),Ak4jets->at(5).phi(),Ak4jets->at(5).energy());
+    }
+    else{
+    //no hay candidate - no estoy seguro que sea bueno eliminar los eventos por ahora
+         return false;
+    }    
+
+   TLorentzVector Boost_top(0,0,0,0);
+   TLorentzVector Boost_antitop(0,0,0,0);
+   TLorentzVector ttj(0,0,0,0); 
+
+   if (Nmuons >=1){
+        if(evt.muons->at(0).charge() == 1){        
+           Boost_top.SetPtEtaPhiE(Pt_tl, Eta_tl, Phi_tl, Energy_tl);
+           Boost_antitop.SetPtEtaPhiE(Pt_th, Eta_th, Phi_th, Energy_th);
+        }
+        if(evt.muons->at(0).charge() == -1){
+           Boost_top.SetPtEtaPhiE(Pt_th, Eta_th, Phi_th, Energy_th);
+           Boost_antitop.SetPtEtaPhiE(Pt_tl, Eta_tl, Phi_tl, Energy_tl);
+        }
+   }   
+   if (Nelectrons >= 1){
+        if(evt.electrons->at(0).charge() == 1){
+           Boost_top.SetPtEtaPhiE(Pt_tl, Eta_tl, Phi_tl, Energy_tl);
+           Boost_antitop.SetPtEtaPhiE(Pt_th, Eta_th, Phi_th, Energy_th);
+        }
+        if(evt.electrons->at(0).charge() == -1){
+           Boost_top.SetPtEtaPhiE(Pt_th, Eta_th, Phi_th, Energy_th);
+           Boost_antitop.SetPtEtaPhiE(Pt_tl, Eta_tl, Phi_tl, Energy_tl);
+        }
+   }   
+
+   ttj.SetPxPyPzE(Boost_top.Px()+Boost_antitop.Px()+Boost_Ak4_add.Px(),Boost_top.Py()+Boost_antitop.Py()+Boost_Ak4_add.Py(),Boost_top.Pz()+Boost_antitop.Pz()+Boost_Ak4_add.Pz(),Boost_top.E()+Boost_antitop.E()+Boost_Ak4_add.E());
+   Boost_top.Boost(-ttj.BoostVector());
+   Boost_antitop.Boost(-ttj.BoostVector());
+   Boost_Ak4_add.Boost(-ttj.BoostVector()); 
+
+   evt.set(h_Boost_top_pt, Boost_top.Pt());
+   evt.set(h_Boost_top_eta, Boost_top.Eta());
+   evt.set(h_Boost_top_phi, Boost_top.Phi());
+   evt.set(h_Boost_top_E, Boost_top.E());
+
+   evt.set(h_Boost_antitop_pt, Boost_antitop.Pt());
+   evt.set(h_Boost_antitop_eta, Boost_antitop.Eta());
+   evt.set(h_Boost_antitop_phi, Boost_antitop.Phi());
+   evt.set(h_Boost_antitop_E, Boost_antitop.E());
+
+   evt.set(h_Boost_Ak4_add_pt, Boost_Ak4_add.Pt());
+   evt.set(h_Boost_Ak4_add_eta, Boost_Ak4_add.Eta());
+   evt.set(h_Boost_Ak4_add_phi, Boost_Ak4_add.Phi());
+   evt.set(h_Boost_Ak4_add_E, Boost_Ak4_add.E());
+
+
+   evt.set(h_chi2, chi2);
+   evt.set(h_M_tt, Mass_tt);
+   evt.set(h_M_th,Mass_th);
+   evt.set(h_M_tl,Mass_tl);
+
+
+
   }
-
-
 
   return true;
 }

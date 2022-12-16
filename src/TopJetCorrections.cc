@@ -86,6 +86,8 @@ void TopJetCorrections::init(Context & ctx){
     tjet_JLC_MC->setup2017(std::make_shared<JetLeptonCleaner_by_KEYmatching>(ctx, JERFiles::JECFilesMC(tjec_tag_2017, tjec_ver_2017, tjec_tjet_coll),"topjets"));
     tjet_JLC_MC->setup2018(std::make_shared<JetLeptonCleaner_by_KEYmatching>(ctx, JERFiles::JECFilesMC(tjec_tag_2018, tjec_ver_2018, tjec_tjet_coll),"topjets"));
 
+
+   cout << "aqui_CHS" << endl;
     const Year & year = extract_year(ctx);
     std::string jer_tag = "";
     if (year == Year::is2016v2 || year == Year::is2016v3) {
@@ -95,7 +97,7 @@ void TopJetCorrections::init(Context & ctx){
     } else if (year == Year::is2018) {
       jer_tag = "Autumn18_V7";
     } else {
-      throw runtime_error("Cannot find suitable jet resolution file & scale factors for this year for JetResolutionSmearer");
+      throw runtime_error("Cannot find suitable jet resolution file & scale factors for this year for JetResolutionSmearer_Top");
     }
     tjet_resolution_smearer.reset(new GenericJetResolutionSmearer(ctx, "topjets", "gentopjets", JERFiles::JERPathStringMC(jer_tag,algo+pus,"SF"), JERFiles::JERPathStringMC(jer_tag,algo+pus,"PtResolution")));
 

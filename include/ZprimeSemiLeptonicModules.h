@@ -16,6 +16,7 @@
 #include <UHH2/ZprimeSemiLeptonic/include/constants.hpp>
 
 #include "TH1.h"
+#include <TLorentzVector.h>
 
 float inv_mass(const LorentzVector&);
 
@@ -29,6 +30,13 @@ private:
   uhh2::Event::Handle< std::vector<ZprimeCandidate> > h_ZprimeCandidates_;
   uhh2::Event::Handle< std::vector<TopJet> > h_AK8TopTags;
   uhh2::Event::Handle< std::vector<const TopJet*> > h_AK8TopTagsPtr;
+  uhh2::Event::Handle< std::vector<TopJet> > h_AK8WTags;
+  uhh2::Event::Handle< std::vector<const TopJet*> > h_AK8WTagsPtr;
+
+  uhh2::Event::Handle< std::vector<GenTopJet> > h_AK8GenTopTags;
+  uhh2::Event::Handle< std::vector<const GenTopJet*> > h_AK8GenTopTagsPtr;
+  uhh2::Event::Handle< std::vector<GenTopJet> > h_AK8GenWTags;
+  uhh2::Event::Handle< std::vector<const GenTopJet*> > h_AK8GenWTagsPtr;
 
   float minDR_;
   TString mode_;
@@ -85,7 +93,21 @@ private:
   uhh2::Event::Handle< std::vector<const TopJet*> > h_AK8PuppiTopTagsPtr_;
 };
 
+class AK8PuppiWTagger : public uhh2::AnalysisModule {
 
+public:
+  explicit AK8PuppiWTagger(uhh2::Context&, int min_num_daughters = 2, float max_dR = 1.2, float min_mass = 65., float max_mass = 105., float max_tau21 = 0.45);
+  virtual bool process(uhh2::Event&) override;
+
+private:
+  int min_num_daughters_ = 2;
+  float max_dR_;
+  float min_mass_;
+  float max_mass_;
+  float max_tau21_;
+  uhh2::Event::Handle< std::vector<TopJet> > h_AK8PuppiWTags_;
+  uhh2::Event::Handle< std::vector<const TopJet*> > h_AK8PuppiWTagsPtr_;
+};
 
 class HOTVRTopTagger : public uhh2::AnalysisModule {
 
@@ -115,8 +137,26 @@ private:
   float pt_min_;
   uhh2::Event::Handle< std::vector<TopJet> > h_DeepAK8TopTags_;
   uhh2::Event::Handle< std::vector<const TopJet*> > h_DeepAK8TopTagsPtr_;
+  uhh2::Event::Handle< std::vector<GenTopJet> > h_DeepAK8GenTopTags_;
+  uhh2::Event::Handle< std::vector<const GenTopJet*> > h_DeepAK8GenTopTagsPtr_;
 };
 
+class DeepAK8WTagger : public uhh2::AnalysisModule {
+
+public:
+  explicit DeepAK8WTagger(uhh2::Context&, float min_mSD = 65., float max_mSD = 105., float max_score = 0.704, float pt_min = 400); // WP from https://indico.cern.ch/event/877167/contributions/3744193/attachments/1989744/3379280/DeepAK8_Top_W_SFs_V2.pdf
+  virtual bool process(uhh2::Event&) override;
+
+private:
+  float min_mSD_;
+  float max_mSD_;
+  float max_score_;
+  float pt_min_;
+  uhh2::Event::Handle< std::vector<TopJet> > h_DeepAK8WTags_;
+  uhh2::Event::Handle< std::vector<const TopJet*> > h_DeepAK8WTagsPtr_;
+  uhh2::Event::Handle< std::vector<GenTopJet> > h_DeepAK8GenWTags_;
+  uhh2::Event::Handle< std::vector<const GenTopJet*> > h_DeepAK8GenWTagsPtr_;
+};
 
 
 class JetLeptonDeltaRCleaner : public uhh2::AnalysisModule {
@@ -203,6 +243,15 @@ private:
   uhh2::Event::Handle< float > h_Ak8_j2_pt, h_Ak8_j2_eta, h_Ak8_j2_phi, h_Ak8_j2_E, h_Ak8_j2_mSD, h_Ak8_j2_tau21, h_Ak8_j2_tau32;
   uhh2::Event::Handle< float > h_Ak8_j3_pt, h_Ak8_j3_eta, h_Ak8_j3_phi, h_Ak8_j3_E, h_Ak8_j3_mSD, h_Ak8_j3_tau21, h_Ak8_j3_tau32;
   uhh2::Event::Handle< float > h_N_Ak4;
+
+  uhh2::Event::Handle< float > h_top_pt, h_top_eta, h_top_phi, h_top_E, h_top_m;
+  uhh2::Event::Handle< float > h_antitop_pt, h_antitop_eta, h_antitop_phi, h_antitop_E, h_antitop_m;
+  uhh2::Event::Handle< float > h_Ak4_add_pt, h_Ak4_add_eta, h_Ak4_add_phi, h_Ak4_add_E, h_Ak4_add_m;
+
+  uhh2::Event::Handle< float > h_Boost_top_pt, h_Boost_top_eta, h_Boost_top_phi, h_Boost_top_E;
+  uhh2::Event::Handle< float > h_Boost_antitop_pt, h_Boost_antitop_eta, h_Boost_antitop_phi, h_Boost_antitop_E;
+  uhh2::Event::Handle< float > h_Boost_Ak4_add_pt, h_Boost_Ak4_add_eta, h_Boost_Ak4_add_phi, h_Boost_Ak4_add_E;
+
   uhh2::Event::Handle< float > h_Ak4_j1_pt, h_Ak4_j1_eta, h_Ak4_j1_phi, h_Ak4_j1_E, h_Ak4_j1_m, h_Ak4_j1_deepjetbscore;
   uhh2::Event::Handle< float > h_Ak4_j2_pt, h_Ak4_j2_eta, h_Ak4_j2_phi, h_Ak4_j2_E, h_Ak4_j2_m, h_Ak4_j2_deepjetbscore;
   uhh2::Event::Handle< float > h_Ak4_j3_pt, h_Ak4_j3_eta, h_Ak4_j3_phi, h_Ak4_j3_E, h_Ak4_j3_m, h_Ak4_j3_deepjetbscore;
@@ -210,6 +259,9 @@ private:
   uhh2::Event::Handle< float > h_Ak4_j5_pt, h_Ak4_j5_eta, h_Ak4_j5_phi, h_Ak4_j5_E, h_Ak4_j5_m, h_Ak4_j5_deepjetbscore;
   uhh2::Event::Handle< float > h_Ak4_j6_pt, h_Ak4_j6_eta, h_Ak4_j6_phi, h_Ak4_j6_E, h_Ak4_j6_m, h_Ak4_j6_deepjetbscore;
   uhh2::Event::Handle< float > h_M_tt;
+  uhh2::Event::Handle< float > h_M_tl;
+  uhh2::Event::Handle< float > h_M_th;
+  uhh2::Event::Handle< float > h_chi2;
 
   TString mode_;
 

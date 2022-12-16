@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE JobConfiguration PUBLIC "" "JobConfig.dtd" [
+
+<!ENTITY TargetLumi  "16810"> <!-- from https://twiki.cern.ch/twiki/bin/view/CMS/TWikiLUM#SummaryTable, https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopSystematics#Luminosity -->
+<!ENTITY PREFIX      "uhh2.AnalysisModuleRunner.">
+<!ENTITY b_Cacheable "False">
+<!ENTITY NEVT        "-1">
+
+<!ENTITY IS_HOTVR            "false">
+<!ENTITY IS_DEEPAK8          "true">
+<!ENTITY IS_LOOSER_SELECTION "false">
+<!ENTITY CHANNEL             "muon">
+<!ENTITY OUTPUTdir           "/nfs/dust/cms/user/hugobg/output_UL/&CHANNEL;/">
+
+<!-- DATA -->
+<!ENTITY DATA_SingleMuon_RunF_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/DATA_DATA_SingleMuon_RunF.xml">
+<!ENTITY DATA_SingleMuon_RunG_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/DATA_DATA_SingleMuon_RunG.xml">
+<!ENTITY DATA_SingleMuon_RunH_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/DATA_DATA_SingleMuon_RunH.xml">
+<!-- TTbar -->
+<!ENTITY TTToSemiLeptonic_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/MC_TTToSemiLeptonic_UL16postVFP.xml">
+<!ENTITY TTToHadronic_UL16postVFP     SYSTEM "../data/Skimming_datasets_2016UL/MC_TTToHadronic_UL16postVFP.xml">
+<!ENTITY TTTo2L2Nu_UL16postVFP        SYSTEM "../data/Skimming_datasets_2016UL/MC_TTTo2L2Nu_UL16postVFP.xml">
+<!-- WJets -->
+<!ENTITY WJetsToLNu_HT-70To100_UL16postVFP    SYSTEM "../data/Skimming_datasets_2016UL/MC_WJetsToLNu_HT-70To100_UL16postVFP.xml">
+<!ENTITY WJetsToLNu_HT-100To200_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_WJetsToLNu_HT-100To200_UL16postVFP.xml">
+<!ENTITY WJetsToLNu_HT-200To400_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_WJetsToLNu_HT-200To400_UL16postVFP.xml">
+<!ENTITY WJetsToLNu_HT-400To600_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_WJetsToLNu_HT-400To600_UL16postVFP.xml">
+<!ENTITY WJetsToLNu_HT-600To800_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_WJetsToLNu_HT-600To800_UL16postVFP.xml">
+<!ENTITY WJetsToLNu_HT-800To1200_UL16postVFP  SYSTEM "../data/Skimming_datasets_2016UL/MC_WJetsToLNu_HT-800To1200_UL16postVFP.xml">
+<!ENTITY WJetsToLNu_HT-1200To2500_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/MC_WJetsToLNu_HT-1200To2500_UL16postVFP.xml">
+<!ENTITY WJetsToLNu_HT-2500ToInf_UL16postVFP  SYSTEM "../data/Skimming_datasets_2016UL/MC_WJetsToLNu_HT-1200To2500_UL16postVFP.xml">
+<!-- DY -->
+<!ENTITY DYJetsToLL_M-50_HT-70to100_UL16postVFP    SYSTEM "../data/Skimming_datasets_2016UL/MC_DYJetsToLL_M-50_HT-70to100_UL16postVFP.xml">
+<!ENTITY DYJetsToLL_M-50_HT-100to200_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_DYJetsToLL_M-50_HT-100to200_UL16postVFP.xml">
+<!ENTITY DYJetsToLL_M-50_HT-200to400_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_DYJetsToLL_M-50_HT-200to400_UL16postVFP.xml">
+<!ENTITY DYJetsToLL_M-50_HT-400to600_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_DYJetsToLL_M-50_HT-400to600_UL16postVFP.xml">
+<!ENTITY DYJetsToLL_M-50_HT-600to800_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_DYJetsToLL_M-50_HT-600to800_UL16postVFP.xml">
+<!ENTITY DYJetsToLL_M-50_HT-800to1200_UL16postVFP  SYSTEM "../data/Skimming_datasets_2016UL/MC_DYJetsToLL_M-50_HT-800to1200_UL16postVFP.xml">
+<!ENTITY DYJetsToLL_M-50_HT-1200to2500_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/MC_DYJetsToLL_M-50_HT-1200to2500_UL16postVFP.xml">
+<!ENTITY DYJetsToLL_M-50_HT-2500toInf_UL16postVFP  SYSTEM "../data/Skimming_datasets_2016UL/MC_DYJetsToLL_M-50_HT-2500toInf_UL16postVFP.xml">
+<!-- Diboson -->
+<!ENTITY WW_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/MC_WW_UL16postVFP.xml">
+<!ENTITY WZ_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/MC_WZ_UL16postVFP.xml">
+<!ENTITY ZZ_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/MC_ZZ_UL16postVFP.xml">
+<!-- ST -->
+<!ENTITY ST_tW_antitop_5f_NoFullyHadronicDecays_UL16postVFP  SYSTEM "../data/Skimming_datasets_2016UL/MC_ST_tW_antitop_5f_NoFullyHadronicDecays_UL16postVFP.xml">
+<!ENTITY ST_tW_top_5f_NoFullyHadronicDecays_UL16postVFP      SYSTEM "../data/Skimming_datasets_2016UL/MC_ST_tW_top_5f_NoFullyHadronicDecays_UL16postVFP.xml">
+<!ENTITY ST_t-channel_antitop_4f_InclusiveDecays_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/MC_ST_t-channel_antitop_4f_InclusiveDecays_UL16postVFP.xml">
+<!ENTITY ST_t-channel_top_4f_InclusiveDecays_UL16postVFP     SYSTEM "../data/Skimming_datasets_2016UL/MC_ST_t-channel_top_4f_InclusiveDecays_UL16postVFP.xml">
+<!ENTITY ST_s-channel_4f_leptonDecays_UL16postVFP            SYSTEM "../data/Skimming_datasets_2016UL/MC_ST_s-channel_4f_leptonDecays_UL16postVFP.xml">
+<!-- QCD -->
+<!ENTITY QCD_HT50to100_UL16postVFP    SYSTEM "../data/Skimming_datasets_2016UL/MC_QCD_HT50to100_UL16postVFP.xml">
+<!ENTITY QCD_HT100to200_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_QCD_HT100to200_UL16postVFP.xml">
+<!ENTITY QCD_HT200to300_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_QCD_HT200to300_UL16postVFP.xml">
+<!ENTITY QCD_HT300to500_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_QCD_HT300to500_UL16postVFP.xml">
+<!ENTITY QCD_HT500to700_UL16postVFP   SYSTEM "../data/Skimming_datasets_2016UL/MC_QCD_HT500to700_UL16postVFP.xml">
+<!ENTITY QCD_HT700to1000_UL16postVFP  SYSTEM "../data/Skimming_datasets_2016UL/MC_QCD_HT700to1000_UL16postVFP.xml">
+<!ENTITY QCD_HT1000to1500_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/MC_QCD_HT1000to1500_UL16postVFP.xml">
+<!ENTITY QCD_HT1500to2000_UL16postVFP SYSTEM "../data/Skimming_datasets_2016UL/MC_QCD_HT1500to2000_UL16postVFP.xml">
+<!ENTITY QCD_HT2000toInf_UL16postVFP  SYSTEM "../data/Skimming_datasets_2016UL/MC_QCD_HT2000toInf_UL16postVFP.xml">
+
+]>
+
+<!--
+<ConfigParse NEventsBreak="0" LastBreak="0" FileSplit="5" AutoResubmit="0"/>
+<ConfigSGE RAM="2" DISK="2" Mail="condor.desy@gmail.com" Notification="as" Workdir="workdir_Analysis_UL16postVFP_muon"/>
+-->
+
+<JobConfiguration JobName="ZprimePreselectionJob" OutputLevel="INFO">
+	<Library Name="libSUHH2ZprimeSemiLeptonic"/>
+	<Package Name="libSUHH2ZprimeSemiLeptonic"/>
+	<Cycle Name="uhh2::AnalysisModuleRunner" OutputDirectory="/nfs/dust/cms/user/hugobg/output_UL/muon///workdir_Analysis_UL16postVFP_muon/" PostFix="_0" TargetLumi="16810">
+		<InputData Cacheable="False" Lumi="5776243.66921" Type="MC" Version="ST_s-channel_4f_leptonDecays_UL16postVFP">
+			<In FileName="/nfs/dust/cms/user/hugobg/output_UL/Preselection_UL16postVFP/workdir_Preselection_UL16postVFP/uhh2.AnalysisModuleRunner.MC.ST_s-channel_4f_leptonDecays_UL16postVFP_0.root" Lumi="0.0"/>
+			<In FileName="/nfs/dust/cms/user/hugobg/output_UL/Preselection_UL16postVFP/workdir_Preselection_UL16postVFP/uhh2.AnalysisModuleRunner.MC.ST_s-channel_4f_leptonDecays_UL16postVFP_1.root" Lumi="0.0"/>
+			<In FileName="/nfs/dust/cms/user/hugobg/output_UL/Preselection_UL16postVFP/workdir_Preselection_UL16postVFP/uhh2.AnalysisModuleRunner.MC.ST_s-channel_4f_leptonDecays_UL16postVFP_2.root" Lumi="0.0"/>
+			<In FileName="/nfs/dust/cms/user/hugobg/output_UL/Preselection_UL16postVFP/workdir_Preselection_UL16postVFP/uhh2.AnalysisModuleRunner.MC.ST_s-channel_4f_leptonDecays_UL16postVFP_3.root" Lumi="0.0"/>
+			<In FileName="/nfs/dust/cms/user/hugobg/output_UL/Preselection_UL16postVFP/workdir_Preselection_UL16postVFP/uhh2.AnalysisModuleRunner.MC.ST_s-channel_4f_leptonDecays_UL16postVFP_4.root" Lumi="0.0"/>
+			<OutputTree Name="AnalysisTree"/>
+			<InputTree Name="AnalysisTree"/>
+		</InputData>
+		<UserConfig>
+			<Item Name="PrimaryVertexCollection" Value="offlineSlimmedPrimaryVertices"/>
+			<Item Name="GenParticleCollection" Value="GenParticles"/>
+			<Item Name="ElectronCollection" Value="slimmedElectronsUSER"/>
+			<Item Name="MuonCollection" Value="slimmedMuonsUSER"/>
+			<Item Name="JetCollection" Value="jetsAk4Puppi"/>
+			<Item Name="GenJetCollection" Value="slimmedGenJets"/>
+			<Item Name="TopJetCollection" Value="hotvrPuppi"/>
+			<Item Name="GenTopJetCollection" Value="genjetsAk8SubstructureSoftDrop"/>
+			<Item Name="TopPuppiJetCollection" Value="jetsAk8PuppiSubstructure_SoftDropPuppi"/>
+			<Item Name="METName" Value="slimmedMETsPuppi"/>
+			<Item Name="genMETName" Value="slimmedMETs_GenMET"/>
+			<Item Name="additionalBranches" Value="jetsAk4CHS hotvrGen"/>
+			<Item Name="lumi_file" Value="/nfs/dust/cms/user/jabuschh/uhh2-106X_v2/CMSSW_10_6_28/src/UHH2/common/UHH2-data/UL16postVFP/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON_UL16postVFP_normtag.root"/>
+			<Item Name="lumihists_lumi_per_bin" Value="500.0"/>
+			<Item Name="pileup_directory" Value="/nfs/dust/cms/user/jabuschh/uhh2-106X_v2/CMSSW_10_6_28/src/UHH2/common/UHH2-data/UL16postVFP/MyMCPileupHistogram_UL16postVFP.root"/>
+			<Item Name="pileup_directory_data" Value="/nfs/dust/cms/user/jabuschh/uhh2-106X_v2/CMSSW_10_6_28/src/UHH2/common/UHH2-data/UL16postVFP/MyDataPileupHistogram_UL16postVFP.root"/>
+			<Item Name="pileup_directory_data_up" Value="/nfs/dust/cms/user/jabuschh/uhh2-106X_v2/CMSSW_10_6_28/src/UHH2/common/UHH2-data/UL16postVFP/MyDataPileupHistogram_UL16postVFP_72383.root"/>
+			<Item Name="pileup_directory_data_down" Value="/nfs/dust/cms/user/jabuschh/uhh2-106X_v2/CMSSW_10_6_28/src/UHH2/common/UHH2-data/UL16postVFP/MyDataPileupHistogram_UL16postVFP_66017.root"/>
+			<Item Name="BTagCalibration" Value="/nfs/dust/cms/user/jabuschh/uhh2-106X_v2/CMSSW_10_6_28/src/UHH2/common/UHH2-data/btagging_SFs_UL/reshaping_deepJet_106XUL16postVFP_v3.csv"/>
+			<Item Name="NLOCorrections" Value="/nfs/dust/cms/user/jabuschh/uhh2-106X_v2/CMSSW_10_6_28/src/UHH2/ZprimeSemiLeptonic/data/"/>
+			<Item Name="is_hotvr" Value="false"/>
+			<Item Name="is_deepAK8" Value="true"/>
+			<Item Name="is_looser_selection" Value="false"/>
+			<Item Name="use_sframe_weight" Value="false"/>
+			<Item Name="jersmear_direction" Value="nominal"/>
+			<Item Name="jecsmear_direction" Value="nominal"/>
+			<Item Name="ScaleVariationMuR" Value="nominal"/>
+			<Item Name="ScaleVariationMuF" Value="nominal"/>
+			<Item Name="SystDirection_MuonId" Value="nominal"/>
+			<Item Name="SystDirection_MuonIso" Value="nominal"/>
+			<Item Name="SystDirection_MuonTrigger" Value="nominal"/>
+			<Item Name="SystDirection_ElectronId" Value="nominal"/>
+			<Item Name="SystDirection_ElectronReco" Value="nominal"/>
+			<Item Name="Sys_PU" Value="central"/>
+			<Item Name="SystDirection_BTaggingShape" Value="central"/>
+			<Item Name="Sys_prefiring" Value="nominal"/>
+			<Item Name="Sys_TopTag" Value="nominal"/>
+			<Item Name="channel" Value="muon"/>
+			<Item Name="AnalysisModule" Value="ZprimeAnalysisModule"/>
+		</UserConfig>
+	</Cycle>
+</JobConfiguration>

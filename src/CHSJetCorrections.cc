@@ -55,6 +55,8 @@ void CHSJetCorrections::init(Context & ctx){
     jet_corrector_MC->setupUL17(std::make_shared<GenericJetCorrector>(ctx, JERFiles::JECFilesMC(jec_tag_UL17, jec_ver_UL17, jec_jet_coll),"jetsAk4CHS"));
     jet_corrector_MC->setupUL18(std::make_shared<GenericJetCorrector>(ctx, JERFiles::JECFilesMC(jec_tag_UL18, jec_ver_UL18, jec_jet_coll),"jetsAk4CHS"));
 
+
+   cout << "aqui_CHS" << endl;
    const Year & year = extract_year(ctx);
     std::string jer_tag = "";
     if (year == Year::isUL16preVFP) {
@@ -66,7 +68,7 @@ void CHSJetCorrections::init(Context & ctx){
     } else if (year == Year::isUL18) {
       jer_tag = "Summer19UL18_JRV2";
     } else {
-      throw runtime_error("Cannot find suitable jet resolution file & scale factors for this year for JetResolutionSmearer");
+      throw runtime_error("Cannot find suitable jet resolution file & scale factors for this year for JetResolutionSmearer_CHS");
     }
     jet_resolution_smearer.reset(new GenericJetResolutionSmearer(ctx, "jetsAk4CHS", "genjets", JERFiles::JERPathStringMC(jer_tag,"AK4PFchs","SF"), JERFiles::JERPathStringMC(jer_tag,"AK4PFchs","PtResolution")));
 

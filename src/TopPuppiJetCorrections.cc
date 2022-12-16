@@ -67,6 +67,7 @@ void TopPuppiJetCorrections::init(Context & ctx){
     tpuppijet_JLC_MC->setupUL18(std::make_shared<JetLeptonCleaner_by_KEYmatching>(ctx, JERFiles::JECFilesMC(tpuppijec_tag_UL18, tpuppijec_ver_UL18, tpuppijec_tjet_coll),"toppuppijets"));
 
 
+   cout << "aqui_CHS" << endl;
     const Year & year = extract_year(ctx);
     std::string jer_tag = "";
     if (year == Year::isUL16preVFP) {
@@ -78,7 +79,7 @@ void TopPuppiJetCorrections::init(Context & ctx){
     } else if (year == Year::isUL18) {
       jer_tag = "Summer19UL18_JRV2";
     } else {
-      throw runtime_error("Cannot find suitable jet resolution file & scale factors for this year for JetResolutionSmearer");
+      throw runtime_error("Cannot find suitable jet resolution file & scale factors for this year for JetResolutionSmearer_Puppi");
     }
     tpuppijet_resolution_smearer.reset(new GenericJetResolutionSmearer(ctx, "toppuppijets", "gentopjets", JERFiles::JERPathStringMC(jer_tag,tpuppijec_tjet_coll,"SF"), JERFiles::JERPathStringMC(jer_tag,tpuppijec_tjet_coll,"PtResolution")));
 

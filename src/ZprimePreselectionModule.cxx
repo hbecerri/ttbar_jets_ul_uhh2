@@ -109,14 +109,14 @@ ZprimePreselectionModule::ZprimePreselectionModule(uhh2::Context& ctx){
   isUL18        = (ctx.get("dataset_version").find("UL18")        != std::string::npos);
 
   // lepton IDs
-  ElectronId eleID_veto = ElectronID_Fall17_tight_noIso;
+  ElectronId eleID_veto = ElectronID_Fall17_veto;
   MuonId     muID_veto  = MuonID(Muon::CutBasedIdTight);
 
-  double electron_pt(25.);
-  double muon_pt(25.);
+  double electron_pt(30.);
+  double muon_pt(30.);
   double jet1_pt(50.);
   double jet2_pt(20.);
-  double MET(20.);
+  double MET(50.);
 
 
   // GEN Flavor selection [W+jets flavor-splitting]
@@ -140,9 +140,9 @@ ZprimePreselectionModule::ZprimePreselectionModule(uhh2::Context& ctx){
   jet_IDcleaner.reset(new JetCleaner(ctx, jetID_PUPPI));
   jet_cleaner1.reset(new JetCleaner(ctx, 15., 3.0));
   jet_cleaner2.reset(new JetCleaner(ctx, 30., 2.5));
-  hotvrjet_cleaner.reset(new TopJetCleaner(ctx, PtEtaCut(200., 2.5)));
+  hotvrjet_cleaner.reset(new TopJetCleaner(ctx, PtEtaCut(400., 2.5)));
   topjet_puppi_IDcleaner.reset(new TopJetCleaner(ctx, jetID_PUPPI, "toppuppijets"));
-  topjet_puppi_cleaner.reset(new TopJetCleaner(ctx, TopJetId(PtEtaCut(200., 2.5)), "toppuppijets"));
+  topjet_puppi_cleaner.reset(new TopJetCleaner(ctx, TopJetId(PtEtaCut(400., 2.5)), "toppuppijets"));
 
   // common modules
   common.reset(new CommonModules());
@@ -152,16 +152,16 @@ ZprimePreselectionModule::ZprimePreselectionModule(uhh2::Context& ctx){
   common->switch_jetPtSorter(true);
   common->switch_metcorrection(true);
   common->set_muon_id(muonID_veto);
-  common->set_electron_id(electronID_veto);
+//  common->set_electron_id(electronID_veto);
   common->init(ctx, Sys_PU);
 
-  hotvrjetCorr.reset(new HOTVRJetCorrectionModule(ctx));
+//  hotvrjetCorr.reset(new HOTVRJetCorrectionModule(ctx));
 
-  toppuppijetCorr.reset(new TopPuppiJetCorrections());
-  toppuppijetCorr->init(ctx);
+//  toppuppijetCorr.reset(new TopPuppiJetCorrections());
+// toppuppijetCorr->init(ctx);
 
-  CHSjetCorr.reset(new CHSJetCorrections());
-  CHSjetCorr->init(ctx);
+//  CHSjetCorr.reset(new CHSJetCorrections());
+//  CHSjetCorr->init(ctx);
 
   //// EVENT SELECTION
   jet1_sel.reset(new NJetSelection(1, -1, JetId(PtEtaCut(jet1_pt, 2.5))));
@@ -181,29 +181,29 @@ ZprimePreselectionModule::ZprimePreselectionModule(uhh2::Context& ctx){
 
 bool ZprimePreselectionModule::process(uhh2::Event& event){
 
-  //cout<<"Getting started... "<<event.event<<endl;
+//  cout<<"Getting started... "<<event.event<<endl;
   fill_histograms(event, "Input");
 
   bool commonResult = common->process(event);
   if (!commonResult) return false;
-  //cout<<"Common Modules... "<<event.event<<endl;
+//  cout<<"Common Modules... "<<event.event<<endl;
   fill_histograms(event, "CommonModules");
 
   sort_by_pt<Muon>(*event.muons);
   sort_by_pt<Electron>(*event.electrons);
 
   // Correct AK4 CHS jets
-  CHSjetCorr->process(event);
+//  CHSjetCorr->process(event);
 
-  if(isHOTVR){
-    hotvrjetCorr->process(event);
-  }
-  fill_histograms(event, "HOTVRCorrections");
+//  if(isHOTVR){
+//    hotvrjetCorr->process(event);
+//  }
+//  fill_histograms(event, "HOTVRCorrections");
 
-  toppuppijetCorr->process(event);
-  fill_histograms(event, "PUPPICorrections");
+//  toppuppijetCorr->process(event);
+//  fill_histograms(event, "PUPPICorrections");
 
-  //cout<<"TopJEC_JLC ... "<<event.event<<endl;
+//  cout<<"TopJEC_JLC ... "<<event.event<<endl;
 
   // GEN ME quark-flavor selection
   if(!event.isRealData){
